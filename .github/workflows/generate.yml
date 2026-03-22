@@ -24,7 +24,7 @@ jobs:
     - name: Generate Terraform (Multi-file)
       run: |
         RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
-          -H "Authorization: Bearer $OPENAI_API_KEY" \
+          -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
           -d "{
             \"model\": \"gpt-4o-mini\",
@@ -39,6 +39,9 @@ jobs:
               }
             ]
           }")
+
+        echo "Output of chatgpt"
+        echo $RESPONSE
 
         OUTPUT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
 
