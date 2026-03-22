@@ -19,7 +19,7 @@ jobs:
     - name: Read Input
       run: |
         INPUT=$(cat input/infra.yaml | sed 's/"/\\"/g')
-        echo "INPUT=$INPUT" >> $GITHUB_ENV
+        #echo "INPUT=$INPUT" >> $GITHUB_ENV
 
     - name: Generate Terraform (Multi-file)
       run: |
