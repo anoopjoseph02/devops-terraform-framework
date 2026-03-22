@@ -1,0 +1,25 @@
+name: Drift Detection
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: hashicorp/setup-terraform@v2
+
+    - run: terraform init
+      working-directory: terraform/
+
+    - name: Detect Drift
+      run: terraform plan
+
+    - name: Auto Fix Drift
+      if: failure()
+      run: terraform apply -auto-approve
+      working-directory: terraform/

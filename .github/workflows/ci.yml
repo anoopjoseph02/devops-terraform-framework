@@ -1,0 +1,35 @@
+name: Terraform CI
+
+on:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: hashicorp/setup-terraform@v2
+
+    - name: Terraform Init
+      run: terraform init
+      working-directory: terraform/
+
+    - name: Format Check
+      run: terraform fmt -check
+      working-directory: terraform/
+
+    - name: Validate
+      run: terraform validate
+      working-directory: terraform/
+
+    - name: Security Scan (Checkov)
+      run: |
+        pip install checkov
+        checkov -d terraform/
+
+    - name: Cost Estimation (Infracost)
+      run: |
+        curl -sL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
+        infracost breakdown --path terraform/
