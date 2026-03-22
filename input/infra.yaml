@@ -1,2 +1,2 @@
-resource_group: my-rg
-location: eastus
+storage:
+  name: mystorage
