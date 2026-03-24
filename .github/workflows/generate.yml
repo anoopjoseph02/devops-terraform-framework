@@ -45,6 +45,7 @@ jobs:
               {role: "user", content: $prompt}
             ]
           }' > payload.json
+        cat payload.json
 
         curl -s https://api.openai.com/v1/chat/completions \
           -H "Authorization: Bearer {{ secrets.OPENAI_API_KEY }}" \
