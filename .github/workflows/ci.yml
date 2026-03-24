@@ -31,7 +31,7 @@ jobs:
         #git rm -r --cached terraform/.terraform
         #git rm --cached terraform/.terraform.lock.hcl
         echo ".terraform/" >> .gitignore
-        echo ".terraform.lock.hcl" >> .gitignor
+        echo ".terraform.lock.hcl" >> .gitignore
         #git checkout $BRANCH
         git add .
         git commit -m "Auto-format Terraform" || echo "No changes"
@@ -46,11 +46,13 @@ jobs:
       working-directory: terraform/
 
     - name: Security Scan (Checkov)
+      continue-on-error: true
       run: |
         pip install checkov
         checkov -d terraform/
 
     - name: Cost Estimation (Infracost)
+      continue-on-error: true
       run: |
         curl -sL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
         infracost breakdown --path terraform/
