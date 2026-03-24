@@ -9,12 +9,33 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.head_ref || github.ref_name }}
 
     - uses: hashicorp/setup-terraform@v2
 
     - name: Terraform Init
       run: terraform init
       working-directory: terraform/
+
+    - name: Auto Format Terraform
+      run: terraform fmt -recursive
+      working-directory: terraform/
+
+    - name: Commit Formatting Fix
+      env:
+        BRANCH: ${{ github.head_ref || github.ref_name }}
+      run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
+        git rm -r --cached terraform/.terraform
+        git rm --cached terraform/.terraform.lock.hcl
+        echo ".terraform/" >> .gitignore
+        echo ".terraform.lock.hcl" >> .gitignor
+        #git checkout $BRANCH
+        git add .
+        git commit -m "Auto-format Terraform" || echo "No changes"
+        git push
 
     - name: Format Check
       run: terraform fmt -check
