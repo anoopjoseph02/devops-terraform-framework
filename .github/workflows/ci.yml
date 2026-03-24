@@ -28,8 +28,8 @@ jobs:
       run: |
         git config user.name "github-actions"
         git config user.email "actions@github.com"
-        git rm -r --cached terraform/.terraform
-        git rm --cached terraform/.terraform.lock.hcl
+        #git rm -r --cached terraform/.terraform
+        #git rm --cached terraform/.terraform.lock.hcl
         echo ".terraform/" >> .gitignore
         echo ".terraform.lock.hcl" >> .gitignor
         #git checkout $BRANCH
