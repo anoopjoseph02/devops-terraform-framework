@@ -20,11 +20,47 @@ jobs:
     - name: Install tools
       run: sudo apt-get install -y jq
 
-    #- name: Read Input
-      #run: |
-      #  INPUT=$(cat input/infra.yaml | sed 's/"/\\"/g')
-       # echo $INPUT
-      #  echo "INPUT=$INPUT" >> $GITHUB_ENV
+    - name: Read JSON Input
+      run: |
+        INPUT=$(cat input/infra.json)
+        echo "INPUT<<EOF" >> $GITHUB_ENV
+        echo "$INPUT" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+    - name: Build Prompt
+      run: |
+        PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Generate modular Terraform using azurerm provider. STRICT RULES: - Use ONLY Azure (azurerm) - Create: azurerm_resource_group azurerm_virtual_network azurerm_subnet azurerm_kubernetes_cluster azurerm_storage_account - Use modules (resource_group, network, aks, storage) - No hardcoding, use variables - Production-ready OUTPUT FORMAT: ---main.tf--- <code> ---variables.tf--- <code> ---outputs.tf--- <code> ---terraform.tfvars--- <code> INPUT: %s" "$INPUT")
+        echo "PROMPT<<EOF" >> $GITHUB_ENV
+        echo "$PROMPT" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+    - name: Call OpenAI API
+      run: |
+        jq -n \
+          --arg prompt "$PROMPT" \
+          '{
+            model: "gpt-4o-mini",
+            messages: [
+              {role: "system", content: "You are a Terraform expert."},
+              {role: "user", content: $prompt}
+            ]
+          }' > payload.json
+
+        curl -s https://api.openai.com/v1/chat/completions \
+          -H "Authorization: Bearer {{ secrets.OPENAI_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d @payload.json > response.json
+
+        cat response.json | jq -r '.choices[0].message.content' > terraform_output.txt
+
+    - name: Split Terraform Files
+      run: |
+        mkdir -p terraform/modules
+
+        awk '/---main.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/main.tf
+        awk '/---variables.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/variables.tf
+        awk '/---outputs.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/outputs.tf
+        awk '/---terraform.tfvars---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/terraform.tfvars
 
     - name: Generate Terraform (Multi-file)
       run: |
