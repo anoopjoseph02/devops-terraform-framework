@@ -16,15 +16,15 @@ jobs:
     - name: Install tools
       run: sudo apt-get install -y jq
 
-    - name: Read Input
-      run: |
-        INPUT=$(cat input/infra.yaml | sed 's/"/\\"/g')
-        echo $INPUT
-        echo "INPUT=$INPUT" >> $GITHUB_ENV
+    #- name: Read Input
+      #run: |
+      #  INPUT=$(cat input/infra.yaml | sed 's/"/\\"/g')
+       # echo $INPUT
+      #  echo "INPUT=$INPUT" >> $GITHUB_ENV
 
     - name: Generate Terraform (Multi-file)
       run: |
-        RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" -H "Content-Type: application/json" -d '{"model":"gpt-4o-mini","messages":[{"role":"system","content":"You are a Terraform expert."},{"role":"user","content":"Generate Terraform files: main.tf, variables.tf, outputs.tf from YAML: $INPUT"}]}')
+        RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" -H "Content-Type: application/json" -d '{"model":"gpt-4o-mini","messages":[{"role":"system","content":"You are a Terraform expert."},{"role":"user","content":"Generate Terraform files: main.tf, variables.tf, outputs.tf from YAML: $(cat input/infra.json | tr -d '\n' | sed 's/"/\\"/g')"}]}')
 
         echo "Output of chatgpt"
         echo $RESPONSE
