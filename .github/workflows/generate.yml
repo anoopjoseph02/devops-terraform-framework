@@ -51,7 +51,7 @@ jobs:
         curl -s https://api.openai.com/v1/chat/completions \
           -H "Authorization: Bearer {{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
-          -d $JSON > response.json
+          -d "$JSON" > response.json
 
         cat response.json | jq -r '.choices[0].message.content' > terraform_output.txt
         cat terraform_output.txt
