@@ -52,6 +52,8 @@ jobs:
           -H "Authorization: Bearer {{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
           -d "$JSON" > response.json
+        echo "response"
+        cat response.json
 
         cat response.json | jq -r '.choices[0].message.content' > terraform_output.txt
         cat terraform_output.txt
