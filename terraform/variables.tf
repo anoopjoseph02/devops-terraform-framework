@@ -4,14 +4,12 @@ variable "resource_group" {
 }
 
 variable "location" {
-  description = "The Azure region where resources will be created"
+  description = "The Azure location for the resources"
   type        = string
 }
 
-variable "storage" {
-  description = "Storage account configuration"
-  type = object({
-    name = string
-  })
+variable "storage_name" {
+  description = "The name of the storage account"
+  type        = string
 }
 
