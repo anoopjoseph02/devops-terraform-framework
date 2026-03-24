@@ -23,11 +23,11 @@ jobs:
 
     - name: Generate Terraform (Multi-file)
       run: |
-        RESPONSE=$(curl -s https://test-openai-786.openai.azure.com/ \
+        RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions \
           -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
           -d "{
-            \"model\": \"gpt-5-nano",
+            \"model\": \"gpt-4o-mini",
             \"messages\": [
               {
                 \"role\": \"system\",
