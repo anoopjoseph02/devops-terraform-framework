@@ -29,7 +29,7 @@ jobs:
 
     - name: Build Prompt
       run: |
-        PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Your task is to convert the provided infrastructure definition into production-ready Terraform code. REQUIREMENTS: - Use ONLY Azure (azurerm provider) - Dynamically detect resources from input (DO NOT assume fixed resources) - Generate only the resources present in the input JSON - Use correct azurerm_* resource types - Use variables (no hardcoding) - Follow Terraform best practices - Ensure proper dependencies between resources STRUCTURE: - Use modular design where applicable - Generate: main.tf (module calls or resources) variables.tf outputs.tf terraform.tfvars RULES: - DO NOT include any AWS or GCP resources - DO NOT generate resources not present in input - DO NOT use placeholders or dummy values - Ensure valid and deployable Terraform code OUTPUT FORMAT (STRICT): ---main.tf--- <code> ---variables.tf--- <code> ---outputs.tf--- <code> ---terraform.tfvars--- <code> INPUT JSON: %s" "$INPUT")
+        PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Your task is to convert the provided infrastructure definition into production-ready Terraform code. REQUIREMENTS: - Use ONLY Azure (azurerm provider) - Dynamically detect resources from input (DO NOT assume fixed resources) - Generate only the resources present in the input JSON - Use correct azurerm_* resource types - Use variables (no hardcoding) - Follow Terraform best practices - Ensure proper dependencies between resources STRUCTURE: - Use modular design where applicable - Generate: main.tf (module calls or resources) variables.tf outputs.tf terraform.tfvars RULES: - DO NOT include any AWS or GCP resources - DO NOT generate resources not present in input - DO NOT use placeholders or dummy values - Ensure valid and deployable Terraform code STRICT OUTPUT RULES: - DO NOT include markdown (no ``` or ###) - DO NOT include explanations or comments outside code - ONLY return plain Terraform code - Use EXACT separators with no spaces: ---main.tf--- ---variables.tf--- ---outputs.tf--- ---terraform.tfvars--- OUTPUT FORMAT (STRICT): ---main.tf--- <code> ---variables.tf--- <code> ---outputs.tf--- <code> ---terraform.tfvars--- <code> INPUT JSON: %s" "$INPUT")
         echo "PROMPT<<EOF" >> $GITHUB_ENV
         echo "$PROMPT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
@@ -58,7 +58,6 @@ jobs:
     - name: Split Terraform Files
       run: |
         mkdir -p terraform/modules
-
         awk '/---main.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/main.tf
         awk '/---variables.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/variables.tf
         awk '/---outputs.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/outputs.tf
