@@ -1,5 +1,3 @@
 resource_group = "aj-rg"
 location       = "eastus"
-storage = {
-  name = "ajstorageacct"
-}
+storage_name   = "ajstorageacct"
