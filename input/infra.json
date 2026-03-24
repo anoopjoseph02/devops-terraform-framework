@@ -1,0 +1,11 @@
+{
+  "resource_group": "my-rg",
+  "location": "eastus",
+  "aks": {
+    "name": "myAKSCluster",
+    "node_count": 2
+  },
+  "storage": {
+    "name": "mystorageacct"
+  }
+}
