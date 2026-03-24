@@ -30,43 +30,43 @@ jobs:
     - name: Build Prompt
       run: |
         PROMPT=$(cat <<EOF
-You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure.
-
-Generate modular Terraform using azurerm provider.
-
-STRICT RULES:
-- Use ONLY Azure (azurerm)
-- Create:
-  azurerm_resource_group
-  azurerm_virtual_network
-  azurerm_subnet
-  azurerm_kubernetes_cluster
-  azurerm_storage_account
-- Use modules (resource_group, network, aks, storage)
-- No hardcoding, use variables
-- Production-ready
-
-OUTPUT FORMAT:
-
----main.tf---
-<code>
-
----variables.tf---
-<code>
-
----outputs.tf---
-<code>
-
----terraform.tfvars---
-<code>
-
-INPUT:
-$INPUT
-EOF
-)
-        echo "PROMPT<<EOF" >> $GITHUB_ENV
-        echo "$PROMPT" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure.
+        
+        Generate modular Terraform using azurerm provider.
+        
+        STRICT RULES:
+        - Use ONLY Azure (azurerm)
+        - Create:
+          azurerm_resource_group
+          azurerm_virtual_network
+          azurerm_subnet
+          azurerm_kubernetes_cluster
+          azurerm_storage_account
+        - Use modules (resource_group, network, aks, storage)
+        - No hardcoding, use variables
+        - Production-ready
+        
+        OUTPUT FORMAT:
+        
+        ---main.tf---
+        <code>
+        
+        ---variables.tf---
+        <code>
+        
+        ---outputs.tf---
+        <code>
+        
+        ---terraform.tfvars---
+        <code>
+        
+        INPUT:
+        $INPUT
+        EOF
+        )
+                echo "PROMPT<<EOF" >> $GITHUB_ENV
+                echo "$PROMPT" >> $GITHUB_ENV
+                echo "EOF" >> $GITHUB_ENV
 
     - name: Call OpenAI API
       run: |
@@ -81,7 +81,7 @@ EOF
           }' > payload.json
 
         curl -s https://api.openai.com/v1/chat/completions \
-          -H "Authorization: Bearer $OPENAI_API_KEY" \
+          -H "Authorization: Bearer {{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
           -d @payload.json > response.json
 
