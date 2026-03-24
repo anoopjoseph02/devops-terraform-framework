@@ -21,12 +21,15 @@ jobs:
       working-directory: terraform/
 
     - name: Commit Formatting Fix
+      env:
+        BRANCH: ${{ github.head_ref || github.ref_name }}
       run: |
         git config user.name "github-actions"
         git config user.email "actions@github.com"
+        git checkout $BRANCH
         git add .
         git commit -m "Auto-format Terraform" || echo "No changes"
-        git push
+        git push origin $BRANCH
 
     - name: Format Check
       run: terraform fmt -check
