@@ -20,22 +20,49 @@ jobs:
     - name: Install tools
       run: sudo apt-get install -y jq
 
-    #- name: Read Input
-      #run: |
-      #  INPUT=$(cat input/infra.yaml | sed 's/"/\\"/g')
-       # echo $INPUT
-      #  echo "INPUT=$INPUT" >> $GITHUB_ENV
-
-    - name: Generate Terraform (Multi-file)
+    - name: Read JSON Input
       run: |
-        RESPONSE=$(curl -s https://api.openai.com/v1/chat/completions -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" -H "Content-Type: application/json" -d '{"model":"gpt-4o-mini","messages":[{"role":"system","content":"You are a Terraform expert."},{"role":"user","content":"Generate Terraform files: main.tf, variables.tf, outputs.tf from YAML: $(cat input/infra.json | tr -d '\n' | sed 's/"/\\"/g')"}]}')
+        INPUT=$(cat input/infra.json)
+        echo "INPUT<<EOF" >> $GITHUB_ENV
+        echo "$INPUT" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
-        echo "Output of chatgpt"
-        echo $RESPONSE
+    - name: Build Prompt
+      run: |
+        PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Your task is to convert the provided infrastructure definition into production-ready Terraform code. REQUIREMENTS: - Use ONLY Azure (azurerm provider) - Dynamically detect resources from input (DO NOT assume fixed resources) - Generate only the resources present in the input JSON - Use correct azurerm_* resource types - Use variables (no hardcoding) - Follow Terraform best practices - Ensure proper dependencies between resources STRUCTURE: - Use modular design where applicable - Generate: main.tf (module calls or resources) variables.tf outputs.tf terraform.tfvars RULES: - DO NOT include any AWS or GCP resources - DO NOT generate resources not present in input - DO NOT use placeholders or dummy values - Ensure valid and deployable Terraform code OUTPUT FORMAT (STRICT): ---main.tf--- <code> ---variables.tf--- <code> ---outputs.tf--- <code> ---terraform.tfvars--- <code> INPUT JSON: %s" "$INPUT")
+        echo "PROMPT<<EOF" >> $GITHUB_ENV
+        echo "$PROMPT" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
 
-        OUTPUT=$(echo "$RESPONSE" | jq -r '.choices[0].message.content')
+    - name: Call OpenAI API
+      run: |
+        jq -n \
+          --arg prompt "$PROMPT" \
+          '{
+            model: "gpt-4o-mini",
+            messages: [
+              {role: "system", content: "You are a Terraform expert."},
+              {role: "user", content: $prompt}
+            ]
+          }' > payload.json
+        JSON=$(jq -c . payload.json)
 
-        echo "$OUTPUT" > terraform/main.tf
+        curl -s https://api.openai.com/v1/chat/completions \
+          -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d "$JSON" > response.json
+
+        cat response.json | jq -r '.choices[0].message.content' > terraform_output.txt
+
+    - name: Split Terraform Files
+      run: |
+        mkdir -p terraform/modules
+
+        awk '/---main.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/main.tf
+        awk '/---variables.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/variables.tf
+        awk '/---outputs.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/outputs.tf
+        awk '/---terraform.tfvars---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/terraform.tfvars
+
 
     - name: Create Branch & PR
       env:
