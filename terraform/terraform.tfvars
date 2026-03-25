@@ -1,3 +1,6 @@
 resource_group = "aj-rg"
 location       = "eastus"
-storage_name   = "ajstorageacct"
+storage = {
+  name                    = "ajstorageacct"
+  account_replication_type = "LRS"
+}
