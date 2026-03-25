@@ -96,3 +96,11 @@ jobs:
     #     git add terraform/
     #     git diff --cached --quiet || git commit -m "AI Terraform Update"
     #     git push origin HEAD:master
+
+    - name: Save branch name
+      run: echo "$BRANCH" > branch.txt
+
+    - uses: actions/upload-artifact@v4
+      with:
+        name: branch-name
+        path: branch.txt
