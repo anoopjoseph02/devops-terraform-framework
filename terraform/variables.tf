@@ -11,7 +11,7 @@ variable "location" {
 variable "storage" {
   description = "Configuration for the storage account"
   type = object({
-    name                    = string
+    name                     = string
     account_replication_type = string
   })
 }
