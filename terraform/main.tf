@@ -1,16 +1,21 @@
-resource "azurerm_resource_group" "rg" {
+provider "azurerm" {
+  features {}
+}
+
+resource "azurerm_resource_group" "main" {
   name     = var.resource_group
   location = var.location
 }
 
-resource "azurerm_storage_account" "storage" {
+resource "azurerm_storage_account" "main" {
   name                     = var.storage.name
-  resource_group_name     = azurerm_resource_group.rg.name
-  location                = azurerm_resource_group.rg.location
-  account_tier            = "Standard"
+  resource_group_name      = azurerm_resource_group.main.name
+  location                 = azurerm_resource_group.main.location
+  account_tier             = "Standard"
   account_replication_type = var.storage.account_replication_type
 
-    azurerm_resource_group.rg
+  depends_on = [
+    azurerm_resource_group.main
   ]
 }
 
