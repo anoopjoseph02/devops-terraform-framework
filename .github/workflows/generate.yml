@@ -85,7 +85,7 @@ jobs:
 
         git add terraform/
         git commit -m "AI Generated Terraform"
-        git push origin $BRANCH
+        git push origin HEAD:$BRANCH --force
     #     curl -X POST https://api.github.com/repos/$REPO/pulls -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"AI Terraform\",\"head\":\"$BRANCH\",\"base\":\"master\",\"body\":\"Auto-generated Terraform code\"}"
         
     # - name: Resolve conflicts (keep generated Terraform)
