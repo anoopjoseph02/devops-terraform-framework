@@ -92,10 +92,7 @@ jobs:
         git config user.name "github-actions"
         git config user.email "actions@github.com"
         git fetch origin master
-        git merge origin/master || true
-        git checkout --ours terraform/main.tf
-        git checkout --ours terraform/variables.tf
-        git checkout --ours terraform/outputs.tf
+        git reset --hard origin/master
         git add terraform/
-        git commit -m "Resolve conflicts (keep generated Terraform)" || echo "No conflicts"
-        git push
+        git diff --cached --quiet || git commit -m "AI Terraform Update"
+        git push origin HEAD:master
