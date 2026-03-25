@@ -11,9 +11,21 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
+    # - uses: actions/checkout@v3
+    #   with:
+    #     ref: ${{ github.event.workflow_run.head_branch }}
+    - uses: actions/download-artifact@v4
       with:
-        ref: ${{ github.event.workflow_run.head_branch }}
+        name: branch-name
+
+    - name: Read branch
+      id: branch
+      run: echo "BRANCH=$(cat branch.txt)" >> $GITHUB_ENV
+
+    - name: Checkout branch
+      run: |
+        git fetch origin $BRANCH
+        git checkout $BRANCH
 
     - uses: hashicorp/setup-terraform@v2
 
