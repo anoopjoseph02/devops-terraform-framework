@@ -57,6 +57,7 @@ jobs:
 
         cat response.json | jq -r '.choices[0].message.content' > terraform_output.txt
         cat terraform_output.txt
+        sed -i 's/```hcl//g; s/```//g; s/^###.*//g' terraform_output.txt
 
     - name: Split Terraform Files
       run: |
