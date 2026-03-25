@@ -56,3 +56,8 @@ jobs:
       run: |
         curl -sL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
         infracost breakdown --path terraform/
+  
+    - name: Terraform Plan (with retry)
+      run: |
+        terraform plan -no-color
+      working-directory: terraform/
