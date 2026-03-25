@@ -79,21 +79,18 @@ jobs:
         git config user.name "github-actions"
         git config user.email "actions@github.com"
 
-        BRANCH="ai-terraform-$(date +%s)"
-        git checkout -b $BRANCH
+        #BRANCH="ai-terraform-$(date +%s)"
+        #git checkout -b $BRANCH
 
-        git add terraform/
-        git commit -m "AI Generated Terraform"
-        git push origin $BRANCH
-
-    - name: Auto Resolve Conflicts
-      run: |
+        #git add terraform/
+        #git commit -m "AI Generated Terraform"
+        #git push origin $BRANCH
         git fetch origin main
-        git merge origin/main --allow-unrelated-histories || true
-        git restore --staged .github/workflows/ || true
-        git checkout -- .github/workflows/ || true
-        git add .
-        git commit -m "Auto-resolve conflicts (keep generated Terraform)" || echo "No changes"
-        git push --set-upstream origin HEAD
+        git checkout main
+        git reset --hard origin/main
+        git add terraform/
+        git diff --cached --quiet || git commit -m "AI Terraform Update"
+        git push origin main
+
         #curl -X POST https://api.github.com/repos/$REPO/pulls -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"AI Terraform\",\"head\":\"$BRANCH\",\"base\":\"main\",\"body\":\"Auto-generated Terraform code\"}"
         
