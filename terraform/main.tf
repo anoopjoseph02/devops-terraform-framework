@@ -13,5 +13,9 @@ resource "azurerm_storage_account" "main" {
   location                 = azurerm_resource_group.main.location
   account_tier             = "Standard"
   account_replication_type = var.storage.account_replication_type
+
+  depends_on = [
+    azurerm_resource_group.main
+  ]
 }
 

@@ -4,4 +4,3 @@ storage = {
   name                     = "ajstorageacct"
   account_replication_type = "LRS"
 }
-```

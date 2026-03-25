@@ -1,5 +1,5 @@
 variable "resource_group" {
-  description = "The name of the Resource Group"
+  description = "The name of the resource group"
   type        = string
 }
 
@@ -9,7 +9,7 @@ variable "location" {
 }
 
 variable "storage" {
-  description = "Storage account configuration"
+  description = "Configuration for the storage account"
   type = object({
     name                     = string
     account_replication_type = string
