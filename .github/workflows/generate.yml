@@ -89,6 +89,8 @@ jobs:
         
     - name: Resolve conflicts (keep generated Terraform)
       run: |
+        git config user.name "github-actions"
+        git config user.email "actions@github.com"
         git fetch origin master
         git merge origin/master || true
         git checkout --ours terraform/main.tf
