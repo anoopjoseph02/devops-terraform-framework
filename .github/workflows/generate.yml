@@ -90,8 +90,8 @@ jobs:
       run: |
         git fetch origin main
         git merge origin/main --allow-unrelated-histories || true
-        #git checkout --ours terraform/ || true
-        #git checkout --theirs .github/workflows/ || true
+        git restore --staged .github/workflows/ || true
+        git checkout -- .github/workflows/ || true
         git add .
         git commit -m "Auto-resolve conflicts (keep generated Terraform)" || echo "No changes"
         git push --set-upstream origin HEAD
