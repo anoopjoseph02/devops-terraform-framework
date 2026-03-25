@@ -94,6 +94,6 @@ jobs:
         #git checkout --theirs .github/workflows/ || true
         git add .
         git commit -m "Auto-resolve conflicts (keep generated Terraform)" || echo "No changes"
-        git push --set-upstream origin $BRANCH   
+        git push --set-upstream origin HEAD
         #curl -X POST https://api.github.com/repos/$REPO/pulls -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"AI Terraform\",\"head\":\"$BRANCH\",\"base\":\"main\",\"body\":\"Auto-generated Terraform code\"}"
         
