@@ -17,6 +17,8 @@ jobs:
     steps:
     - uses: actions/checkout@v3
 
+    - uses: hashicorp/setup-terraform@v2
+
     - name: Install tools
       run: sudo apt-get install -y jq
 
@@ -30,8 +32,7 @@ jobs:
     - name: Build Prompt
       run: |
         #PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Your task is to convert the provided infrastructure definition into production-ready Terraform code. REQUIREMENTS: - Use ONLY Azure (azurerm provider) - Dynamically detect resources from input (DO NOT assume fixed resources) - Generate only the resources present in the input JSON - Use correct azurerm_* resource types - Use variables (no hardcoding) - Follow Terraform best practices - Ensure proper dependencies between resources STRUCTURE: - Use modular design where applicable - Generate: main.tf variables.tf outputs.tf terraform.tfvars RULES: - DO NOT include markdown or formatting - DO NOT include explanations - ONLY return plain Terraform code - Use EXACT separators: ---main.tf--- ---variables.tf--- ---outputs.tf--- ---terraform.tfvars--- INPUT JSON: %s" "$INPUT")
-        PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Your task is to convert the provided infrastructure definition into production-ready Terraform code. REQUIREMENTS: - Use ONLY Azure (azurerm provider) - Dynamically detect resources from input (DO NOT assume fixed resources) - Generate only the resources present in the input JSON - Use correct azurerm_* resource types - Use variables (no hardcoding) - Follow Terraform best practices - Ensure proper dependencies between resources - Ensure stable and consistent output unless input or improvements require change STRUCTURE: - Use modular design where applicable - Generate: main.tf variables.tf outputs.tf terraform.tfvars RULES: - DO NOT include any AWS or GCP resources - DO NOT generate resources not present in input - DO NOT use placeholders or dummy values - ONLY modify required resources - DO NOT overwrite entire file - Append or update existing blocks intelligently - Preserve existing resource names, variable names, and structure - Avoid duplicate resources - Maintain consistent attribute ordering inside resources - Use stable naming conventions derived ONLY from input - Do not introduce timestamps, hashes, or random suffixes - Regenerate or improve code ONLY when input changes or better implementation is possible STRICT OUTPUT RULES: - DO NOT include markdown or formatting - DO NOT include explanations - ONLY return plain Terraform code - Use EXACT separators with no spaces: ---main.tf--- ---variables.tf--- ---outputs.tf--- ---terraform.tfvars--- OUTPUT FORMAT (STRICT): ---main.tf--- <code> ---variables.tf--- <code> ---outputs.tf--- <code> ---terraform.tfvars--- <code> INPUT JSON: %s" "$INPUT")
-        echo "PROMPT<<EOF" >> $GITHUB_ENV
+        PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Your task is to convert the provided infrastructure definition into production-ready Terraform code. REQUIREMENTS: - Use ONLY Azure (azurerm provider) - Dynamically detect resources from input (DO NOT assume fixed resources) - Generate only the resources present in the input JSON - Use correct azurerm_* resource types - Use variables (no hardcoding) - Follow Terraform best practices - Ensure proper dependencies between resources STRUCTURE: - Generate: main.tf variables.tf outputs.tf terraform.tfvars RULES: - ONLY modify required resources - DO NOT overwrite entire file - Preserve existing resource names, structure, and formatting - Avoid duplicate resources - Maintain consistent attribute ordering inside resources - Use stable naming conventions derived ONLY from input - Do not introduce timestamps, hashes, or random suffixes - DO NOT introduce optional attributes unless explicitly required by input - DO NOT add depends_on if implicit dependency already exists - DO NOT change formatting, spacing, or indentation - DO NOT reorder attributes or blocks - Ensure identical output for identical input STRICT OUTPUT RULES: - ONLY return plain Terraform code - Use EXACT separators: ---main.tf--- ---variables.tf--- ---outputs.tf--- ---terraform.tfvars--- INPUT JSON: %s" "$INPUT")
         echo "$PROMPT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
@@ -63,7 +64,11 @@ jobs:
         awk '/---variables.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/variables.tf
         awk '/---outputs.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/outputs.tf
         awk '/---terraform.tfvars---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/terraform.tfvars
+        sed -i '/depends_on/d' terraform/main.tf
 
+    - name: Format Terraform
+      run: terraform fmt -recursive
+      working-directory: terraform/
 
     - name: Create Branch & PR
       env:
