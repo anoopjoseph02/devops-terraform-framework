@@ -71,28 +71,28 @@ jobs:
       run: terraform fmt -recursive
       working-directory: terraform/
 
-    # - name: Create Branch & PR
-    #   env:
-    #     TOKEN: ${{ secrets.TOKEN }}
-    #     REPO: ${{ github.repository }}
-    #   run: |
-    #     git config user.name "github-actions"
-    #     git config user.email "actions@github.com"
-
-    #     BRANCH="ai-terraform-$(date +%s)"
-    #     git checkout -b $BRANCH
-
-    #     git add terraform/
-    #     git commit -m "AI Generated Terraform"
-    #     git push origin $BRANCH
-    #     curl -X POST https://api.github.com/repos/$REPO/pulls -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"AI Terraform\",\"head\":\"$BRANCH\",\"base\":\"master\",\"body\":\"Auto-generated Terraform code\"}"
-        
-    - name: Resolve conflicts (keep generated Terraform)
+    - name: Create Branch & PR
+      env:
+        TOKEN: ${{ secrets.TOKEN }}
+        REPO: ${{ github.repository }}
       run: |
         git config user.name "github-actions"
         git config user.email "actions@github.com"
-        git fetch origin master
-        git reset --hard origin/master
+
+        BRANCH="ai-terraform-$(date +%s)"
+        git checkout -b $BRANCH
+
         git add terraform/
-        git diff --cached --quiet || git commit -m "AI Terraform Update"
-        git push origin HEAD:master
+        git commit -m "AI Generated Terraform"
+        git push origin $BRANCH
+    #     curl -X POST https://api.github.com/repos/$REPO/pulls -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"AI Terraform\",\"head\":\"$BRANCH\",\"base\":\"master\",\"body\":\"Auto-generated Terraform code\"}"
+        
+    # - name: Resolve conflicts (keep generated Terraform)
+    #   run: |
+    #     git config user.name "github-actions"
+    #     git config user.email "actions@github.com"
+    #     git fetch origin master
+    #     git reset --hard origin/master
+    #     git add terraform/
+    #     git diff --cached --quiet || git commit -m "AI Terraform Update"
+    #     git push origin HEAD:master
