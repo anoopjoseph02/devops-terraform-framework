@@ -71,19 +71,29 @@ jobs:
       run: terraform fmt -recursive
       working-directory: terraform/
 
-    - name: Create Branch & PR
-      env:
-        TOKEN: ${{ secrets.TOKEN }}
-        REPO: ${{ github.repository }}
-      run: |
-        git config user.name "github-actions"
-        git config user.email "actions@github.com"
+    # - name: Create Branch & PR
+    #   env:
+    #     TOKEN: ${{ secrets.TOKEN }}
+    #     REPO: ${{ github.repository }}
+    #   run: |
+    #     git config user.name "github-actions"
+    #     git config user.email "actions@github.com"
 
-        BRANCH="ai-terraform-$(date +%s)"
-        git checkout -b $BRANCH
+    #     BRANCH="ai-terraform-$(date +%s)"
+    #     git checkout -b $BRANCH
 
-        git add terraform/
-        git commit -m "AI Generated Terraform"
-        git push origin $BRANCH
-        curl -X POST https://api.github.com/repos/$REPO/pulls -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"AI Terraform\",\"head\":\"$BRANCH\",\"base\":\"master\",\"body\":\"Auto-generated Terraform code\"}"
+    #     git add terraform/
+    #     git commit -m "AI Generated Terraform"
+    #     git push origin $BRANCH
+    #     curl -X POST https://api.github.com/repos/$REPO/pulls -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"AI Terraform\",\"head\":\"$BRANCH\",\"base\":\"master\",\"body\":\"Auto-generated Terraform code\"}"
         
+    - name: Resolve conflicts (keep generated Terraform)
+      run: |
+        git fetch origin master
+        git merge origin/master || true
+        git checkout --ours terraform/main.tf
+        git checkout --ours terraform/variables.tf
+        git checkout --ours terraform/outputs.tf
+        git add terraform/
+        git commit -m "Resolve conflicts (keep generated Terraform)" || echo "No conflicts"
+        git push
