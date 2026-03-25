@@ -1,7 +1,10 @@
 name: Terraform CI
 
 on:
-  pull_request:
+  workflow_run:
+    workflows: ["AI Terraform Generator"]
+    types:
+      - completed
 
 jobs:
   validate:
