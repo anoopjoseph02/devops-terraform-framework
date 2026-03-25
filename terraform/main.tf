@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ```hcl
 provider "azurerm" {
   features {}
@@ -16,3 +17,7 @@ resource "azurerm_storage_account" "storage" {
   account_replication_type = var.account_replication_type
 }
 ```
+=======
+
+
+>>>>>>> origin/main

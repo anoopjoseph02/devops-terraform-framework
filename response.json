@@ -1,0 +1,36 @@
+{
+  "id": "chatcmpl-DNNjUFUFADBcvZXUM4vjXC7KD3VvG",
+  "object": "chat.completion",
+  "created": 1774465144,
+  "model": "gpt-4o-2024-08-06",
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "---main.tf---\n```hcl\nprovider \"azurerm\" {\n  features {}\n}\n\nresource \"azurerm_resource_group\" \"rg\" {\n  name     = var.resource_group\n  location = var.location\n}\n\nresource \"azurerm_storage_account\" \"storage\" {\n  name                     = var.storage_name\n  resource_group_name      = azurerm_resource_group.rg.name\n  location                 = azurerm_resource_group.rg.location\n  account_tier             = \"Standard\"\n  account_replication_type = var.account_replication_type\n}\n```\n---variables.tf---\n```hcl\nvariable \"resource_group\" {\n  description = \"The name of the resource group\"\n  type        = string\n}\n\nvariable \"location\" {\n  description = \"The Azure region where the resource group should be created\"\n  type        = string\n}\n\nvariable \"storage_name\" {\n  description = \"The name of the storage account\"\n  type        = string\n}\n\nvariable \"account_replication_type\" {\n  description = \"The replication type of the storage account\"\n  type        = string\n}\n```\n---outputs.tf---\n```hcl\noutput \"resource_group_name\" {\n  value = azurerm_resource_group.rg.name\n}\n\noutput \"storage_account_name\" {\n  value = azurerm_storage_account.storage.name\n}\n```\n---terraform.tfvars---\n```hcl\nresource_group = \"aj-rg\"\nlocation = \"eastus\"\nstorage_name = \"ajstorageacct\"\naccount_replication_type = \"LRS\"\n```",
+        "refusal": null,
+        "annotations": []
+      },
+      "logprobs": null,
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 411,
+    "completion_tokens": 320,
+    "total_tokens": 731,
+    "prompt_tokens_details": {
+      "cached_tokens": 0,
+      "audio_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "audio_tokens": 0,
+      "accepted_prediction_tokens": 0,
+      "rejected_prediction_tokens": 0
+    }
+  },
+  "service_tier": "default",
+  "system_fingerprint": "fp_054a40ee02"
+}

@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ```hcl
 variable "resource_group" {
   description = "The name of the resource group"
@@ -19,3 +20,7 @@ variable "account_replication_type" {
   type        = string
 }
 ```
+=======
+
+
+>>>>>>> origin/main
