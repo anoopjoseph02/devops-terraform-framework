@@ -60,6 +60,8 @@ jobs:
 
     - name: Cost Estimation (Infracost)
       continue-on-error: true
+      env:
+        INFRACOST_API_KEY: ${{ vars.INFRACOST_API_KEY }}
       run: |
         curl -sL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
         infracost breakdown --path terraform/
