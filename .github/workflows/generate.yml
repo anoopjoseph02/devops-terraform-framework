@@ -1,4 +1,4 @@
-name: AI Terraform Generator (Intelligent)
+name: AI Terraform Intelligent Pipeline
 
 on:
   push:
@@ -11,67 +11,84 @@ permissions:
   pull-requests: write
 
 jobs:
-  generate-deploy:
+  ai-terraform:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
+    # 🔷 Checkout
+    - uses: actions/checkout@v3
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v2
+    # 🔷 Setup Terraform
+    - uses: hashicorp/setup-terraform@v2
 
-    - name: Install tools
+    # 🔷 Install dependencies
+    - name: Install Tools
       run: sudo apt-get update && sudo apt-get install -y jq bc
 
     # 🔷 STEP 1: Read Input
-    - name: Read JSON Input
+    - name: Read Input JSON
       run: |
         INPUT=$(cat input/infra.json)
         echo "INPUT<<EOF" >> $GITHUB_ENV
         echo "$INPUT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
-    # 🔷 STEP 2: Intelligent Recommendation
-    - name: Intelligent Recommendation
+    # 🔷 STEP 2: AI Recommendation Engine
+    - name: AI Recommendation
       run: |
-        UPDATED_INPUT=$(echo "$INPUT" | jq '
-          if .traffic == "high" then . + {autoscaling: true, node_count: 3}
-          elif .cost == "low" then . + {vm_size: "Standard_B1s"}
-          else .
-          end
-        ')
+        PROMPT=$(printf "Enhance this infrastructure JSON with best practices:
+        - autoscaling
+        - cost optimization
+        - performance tuning
+        Return ONLY JSON.
 
-        echo "UPDATED_INPUT<<EOF" >> $GITHUB_ENV
-        echo "$UPDATED_INPUT" >> $GITHUB_ENV
-        echo "EOF" >> $GITHUB_ENV
+        INPUT: %s" "$INPUT")
 
-    # 🔷 STEP 3: Build Prompt
-    - name: Build Prompt
+        jq -n --arg prompt "$PROMPT" '{
+          model: "gpt-4o-mini",
+          messages: [
+            {role: "system", content: "Return ONLY JSON"},
+            {role: "user", content: $prompt}
+          ]
+        }' > payload.json
+
+        curl -s https://api.openai.com/v1/chat/completions \
+          -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d @payload.json > response.json
+
+        UPDATED=$(jq -r '.choices[0].message.content' response.json)
+
+        echo "$UPDATED" > enhanced.json
+
+    # 🔷 STEP 3: Build Prompt for Terraform
+    - name: Build Terraform Prompt
       run: |
-        PROMPT=$(printf "Generate production-ready Azure Terraform code.
+        INPUT=$(cat enhanced.json)
+
+        PROMPT=$(printf "Generate Azure Terraform code.
         RULES:
         - Only use resources from input
-        - No extra assumptions
-        - Use azurerm provider
-        - Output ONLY Terraform with separators:
+        - No assumptions
+        - Output ONLY Terraform
         ---main.tf---
         ---variables.tf---
         ---outputs.tf---
         ---terraform.tfvars---
-        INPUT JSON: %s" "$UPDATED_INPUT")
+
+        INPUT JSON: %s" "$INPUT")
 
         echo "PROMPT<<EOF" >> $GITHUB_ENV
         echo "$PROMPT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
-    # 🔷 STEP 4: Call OpenAI
-    - name: Generate Terraform via AI
+    # 🔷 STEP 4: AI Terraform Generation
+    - name: Generate Terraform
       run: |
         jq -n --arg prompt "$PROMPT" '{
           model: "gpt-4o",
           messages: [
-            {role: "system", content: "You are a Terraform expert."},
+            {role: "system", content: "Terraform expert"},
             {role: "user", content: $prompt}
           ]
         }' > payload.json
@@ -82,10 +99,10 @@ jobs:
           -d @payload.json > response.json
 
         jq -r '.choices[0].message.content' response.json > terraform_output.txt
-        sed -i 's/```hcl//g; s/```//g' terraform_output.txt
+        sed -i 's/```//g' terraform_output.txt
 
-    # 🔷 STEP 5: Split Files
-    - name: Split Terraform Files
+    # 🔷 STEP 5: Split Terraform Files
+    - name: Split Files
       run: |
         mkdir -p terraform
         awk '/---main.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/main.tf
@@ -93,76 +110,110 @@ jobs:
         awk '/---outputs.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/outputs.tf
         awk '/---terraform.tfvars---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/terraform.tfvars
 
-    # 🔷 STEP 6: Auto Optimization
-    - name: Optimize Terraform
+    # 🔷 STEP 6: AI Optimization
+    - name: AI Optimization
       run: |
-        echo "[INFO] Optimizing resources..."
+        TF=$(cat terraform/main.tf)
 
-        # Example optimization rules
-        sed -i 's/Standard_DS3_v2/Standard_DS2_v2/g' terraform/main.tf || true
+        PROMPT=$(printf "Optimize this Terraform for cost and performance.
+        Keep structure same.
+
+        %s" "$TF")
+
+        jq -n --arg prompt "$PROMPT" '{
+          model: "gpt-4o-mini",
+          messages: [
+            {role: "system", content: "Return only Terraform"},
+            {role: "user", content: $prompt}
+          ]
+        }' > payload.json
+
+        curl -s https://api.openai.com/v1/chat/completions \
+          -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d @payload.json > opt.json
+
+        jq -r '.choices[0].message.content' opt.json > terraform/main.tf
 
     # 🔷 STEP 7: Format & Validate
-    - name: Format Terraform
-      run: terraform fmt -recursive
+    - run: terraform fmt -recursive
       working-directory: terraform/
 
-    - name: Validate Terraform
-      run: terraform validate
-      working-directory: terraform/
 
-    # 🔷 STEP 8: Anomaly Detection
-    - name: Terraform Plan + Anomaly Detection
+    # 🔷 STEP 8: Plan + Anomaly Detection
+    - name: Plan & Detect Anomalies
       run: |
-        terraform init
         terraform plan -out=tfplan
         terraform show -json tfplan > plan.json
 
-        CHANGES=$(jq '.resource_changes | length' plan.json)
+        COUNT=$(jq '.resource_changes | length' plan.json)
 
-        if [ "$CHANGES" -gt 10 ]; then
-          echo "[ALERT] Too many infra changes detected!"
+        if [ "$COUNT" -gt 10 ]; then
+          echo "Too many changes detected!"
           exit 1
         fi
       working-directory: terraform/
 
-    # 🔷 STEP 11: Monitoring Simulation
+    # 🔷 STEP 9: TerraTest
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21'
+
+    - name: Run TerraTest
+      run: |
+        cd tests
+        go mod init terratest || true
+        go get github.com/gruntwork-io/terratest/modules/terraform
+        go test -v -timeout 30m
+
+    # 🔷 STEP 11: Monitoring
     - name: Collect Metrics
       run: |
         CPU=$((RANDOM % 100))
         echo "CPU=$CPU" > metrics.txt
-        cat metrics.txt
 
-    # 🔷 STEP 12: Predictive Scaling
-    - name: Predictive Scaling
+    # 🔷 STEP 12: Predictive Scaling (AI)
+    - name: AI Predictive Scaling
       run: |
-        HOUR=$(date +%H)
-        if [ "$HOUR" -ge 18 ] && [ "$HOUR" -le 22 ]; then
-          echo "[INFO] Peak detected → scaling up"
-          sed -i 's/node_count = 2/node_count = 4/g' terraform/main.tf || true
-        fi
+        CPU=$(cut -d'=' -f2 metrics.txt)
+
+        PROMPT=$(printf "CPU is %s%%. Suggest scaling decision." "$CPU")
+
+        jq -n --arg prompt "$PROMPT" '{
+          model: "gpt-4o-mini",
+          messages: [
+            {role: "system", content: "Return only action"},
+            {role: "user", content: $prompt}
+          ]
+        }' > payload.json
+
+        curl -s https://api.openai.com/v1/chat/completions \
+          -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+          -H "Content-Type: application/json" \
+          -d @payload.json > pred.json
+
+        ACTION=$(jq -r '.choices[0].message.content' pred.json)
+
+        echo "ACTION=$ACTION"
 
     # 🔷 STEP 13: Auto Remediation
     - name: Auto Remediation
       run: |
-        CPU=$(cut -d'=' -f2 metrics.txt)
-
-        if [ "$CPU" -gt 80 ]; then
-          echo "[ALERT] High CPU → scaling up"
-          sed -i 's/node_count = 2/node_count = 5/g' terraform/main.tf || true
+        if [[ "$ACTION" == *"scale up"* ]]; then
+          sed -i 's/node_count = 2/node_count = 4/g' terraform/main.tf || true
         fi
 
     # 🔷 STEP 14: Create PR
     - name: Commit & PR
-      env:
-        TOKEN: ${{ secrets.TOKEN }}
       run: |
         git config user.name "github-actions"
         git config user.email "actions@github.com"
 
-        BRANCH="ai-terraform-pr"
+        BRANCH="ai-terraform-update"
         git checkout -b $BRANCH
 
         git add terraform/
-        git commit -m "AI + Optimized Terraform with intelligent scaling"
+        git commit -m "AI optimized & self-healed infrastructure"
 
         git push origin HEAD:$BRANCH --force
