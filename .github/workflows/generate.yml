@@ -1,4 +1,4 @@
-name: AI Terraform Generator
+name: AI Terraform Generator (Intelligent)
 
 on:
   push:
@@ -11,17 +11,20 @@ permissions:
   pull-requests: write
 
 jobs:
-  generate:
+  generate-deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - uses: hashicorp/setup-terraform@v2
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
 
     - name: Install tools
-      run: sudo apt-get install -y jq
+      run: sudo apt-get update && sudo apt-get install -y jq bc
 
+    # 🔷 STEP 1: Read Input
     - name: Read JSON Input
       run: |
         INPUT=$(cat input/infra.json)
@@ -29,53 +32,129 @@ jobs:
         echo "$INPUT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
+    # 🔷 STEP 2: Intelligent Recommendation
+    - name: Intelligent Recommendation
+      run: |
+        UPDATED_INPUT=$(echo "$INPUT" | jq '
+          if .traffic == "high" then . + {autoscaling: true, node_count: 3}
+          elif .cost == "low" then . + {vm_size: "Standard_B1s"}
+          else .
+          end
+        ')
+
+        echo "UPDATED_INPUT<<EOF" >> $GITHUB_ENV
+        echo "$UPDATED_INPUT" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
+    # 🔷 STEP 3: Build Prompt
     - name: Build Prompt
       run: |
-        #PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Your task is to convert the provided infrastructure definition into production-ready Terraform code. REQUIREMENTS: - Use ONLY Azure (azurerm provider) - Dynamically detect resources from input (DO NOT assume fixed resources) - Generate only the resources present in the input JSON - Use correct azurerm_* resource types - Use variables (no hardcoding) - Follow Terraform best practices - Ensure proper dependencies between resources STRUCTURE: - Use modular design where applicable - Generate: main.tf variables.tf outputs.tf terraform.tfvars RULES: - DO NOT include markdown or formatting - DO NOT include explanations - ONLY return plain Terraform code - Use EXACT separators: ---main.tf--- ---variables.tf--- ---outputs.tf--- ---terraform.tfvars--- INPUT JSON: %s" "$INPUT")
-        PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Your task is to convert the provided infrastructure definition into production-ready Terraform code. REQUIREMENTS: - Use ONLY Azure (azurerm provider) - Dynamically detect resources from input (DO NOT assume fixed resources) - Generate only the resources present in the input JSON - Use correct azurerm_* resource types - Use variables (no hardcoding) - Follow Terraform best practices - Ensure proper dependencies between resources STRUCTURE: - Generate: main.tf variables.tf outputs.tf terraform.tfvars CRITICAL RULES: - You MUST ONLY generate resources explicitly present in INPUT JSON - You MUST NOT generate any additional resources, blocks, or attributes - If something is not present in input -> DO NOT generate it - Output MUST be a direct 1:1 mapping of input -> Terraform - If unsure -> OMIT (do not guess) RULES: - ONLY modify required resources - DO NOT overwrite entire file - Preserve existing resource names, structure, and formatting - Avoid duplicate resources - Maintain consistent attribute ordering inside resources - Use stable naming conventions derived ONLY from input - Do not introduce timestamps, hashes, or random suffixes - DO NOT introduce optional attributes unless explicitly required by input - DO NOT add depends_on if implicit dependency already exists - Ensure identical output for identical input STRICT OUTPUT RULES: - DO NOT include markdown or formatting - DO NOT include explanations - ONLY return plain Terraform code - Use EXACT separators with no spaces: ---main.tf--- ---variables.tf--- ---outputs.tf--- ---terraform.tfvars--- OUTPUT FORMAT (STRICT): ---main.tf--- <code> ---variables.tf--- <code> ---outputs.tf--- <code> ---terraform.tfvars--- <code> INPUT JSON: %s" "$INPUT")
+        PROMPT=$(printf "Generate production-ready Azure Terraform code.
+        RULES:
+        - Only use resources from input
+        - No extra assumptions
+        - Use azurerm provider
+        - Output ONLY Terraform with separators:
+        ---main.tf---
+        ---variables.tf---
+        ---outputs.tf---
+        ---terraform.tfvars---
+        INPUT JSON: %s" "$UPDATED_INPUT")
+
         echo "PROMPT<<EOF" >> $GITHUB_ENV
         echo "$PROMPT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
-    - name: Call OpenAI API
+    # 🔷 STEP 4: Call OpenAI
+    - name: Generate Terraform via AI
       run: |
-        jq -n \
-          --arg prompt "$PROMPT" \
-          '{
-            model: "gpt-4o",
-            messages: [
-              {role: "system", content: "You are a Terraform expert."},
-              {role: "user", content: $prompt}
-            ]
-          }' > payload.json
-        JSON=$(jq -c . payload.json)
+        jq -n --arg prompt "$PROMPT" '{
+          model: "gpt-4o",
+          messages: [
+            {role: "system", content: "You are a Terraform expert."},
+            {role: "user", content: $prompt}
+          ]
+        }' > payload.json
 
         curl -s https://api.openai.com/v1/chat/completions \
           -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
-          -d "$JSON" > response.json
+          -d @payload.json > response.json
 
-        cat response.json | jq -r '.choices[0].message.content' > terraform_output.txt
-        cat terraform_output.txt
-        sed -i 's/```hcl//g; s/```//g; s/^###.*//g' terraform_output.txt
+        jq -r '.choices[0].message.content' response.json > terraform_output.txt
+        sed -i 's/```hcl//g; s/```//g' terraform_output.txt
 
+    # 🔷 STEP 5: Split Files
     - name: Split Terraform Files
       run: |
-        mkdir -p terraform/modules
+        mkdir -p terraform
         awk '/---main.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/main.tf
         awk '/---variables.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/variables.tf
         awk '/---outputs.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/outputs.tf
         awk '/---terraform.tfvars---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/terraform.tfvars
-        sed -i '/depends_on/d' terraform/main.tf
 
+    # 🔷 STEP 6: Auto Optimization
+    - name: Optimize Terraform
+      run: |
+        echo "[INFO] Optimizing resources..."
+
+        # Example optimization rules
+        sed -i 's/Standard_DS3_v2/Standard_DS2_v2/g' terraform/main.tf || true
+
+    # 🔷 STEP 7: Format & Validate
     - name: Format Terraform
       run: terraform fmt -recursive
       working-directory: terraform/
 
-    - name: Create Branch & PR
+    - name: Validate Terraform
+      run: terraform validate
+      working-directory: terraform/
+
+    # 🔷 STEP 8: Anomaly Detection
+    - name: Terraform Plan + Anomaly Detection
+      run: |
+        terraform init
+        terraform plan -out=tfplan
+        terraform show -json tfplan > plan.json
+
+        CHANGES=$(jq '.resource_changes | length' plan.json)
+
+        if [ "$CHANGES" -gt 10 ]; then
+          echo "[ALERT] Too many infra changes detected!"
+          exit 1
+        fi
+      working-directory: terraform/
+
+    # 🔷 STEP 11: Monitoring Simulation
+    - name: Collect Metrics
+      run: |
+        CPU=$((RANDOM % 100))
+        echo "CPU=$CPU" > metrics.txt
+        cat metrics.txt
+
+    # 🔷 STEP 12: Predictive Scaling
+    - name: Predictive Scaling
+      run: |
+        HOUR=$(date +%H)
+        if [ "$HOUR" -ge 18 ] && [ "$HOUR" -le 22 ]; then
+          echo "[INFO] Peak detected → scaling up"
+          sed -i 's/node_count = 2/node_count = 4/g' terraform/main.tf || true
+        fi
+
+    # 🔷 STEP 13: Auto Remediation
+    - name: Auto Remediation
+      run: |
+        CPU=$(cut -d'=' -f2 metrics.txt)
+
+        if [ "$CPU" -gt 80 ]; then
+          echo "[ALERT] High CPU → scaling up"
+          sed -i 's/node_count = 2/node_count = 5/g' terraform/main.tf || true
+        fi
+
+    # 🔷 STEP 14: Create PR
+    - name: Commit & PR
       env:
         TOKEN: ${{ secrets.TOKEN }}
-        REPO: ${{ github.repository }}
       run: |
         git config user.name "github-actions"
         git config user.email "actions@github.com"
@@ -84,16 +163,6 @@ jobs:
         git checkout -b $BRANCH
 
         git add terraform/
-        git commit -m "AI Generated Terraform"
+        git commit -m "AI + Optimized Terraform with intelligent scaling"
+
         git push origin HEAD:$BRANCH --force
-    #     curl -X POST https://api.github.com/repos/$REPO/pulls -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"AI Terraform\",\"head\":\"$BRANCH\",\"base\":\"master\",\"body\":\"Auto-generated Terraform code\"}"
-        
-    # - name: Resolve conflicts (keep generated Terraform)
-    #   run: |
-    #     git config user.name "github-actions"
-    #     git config user.email "actions@github.com"
-    #     git fetch origin master
-    #     git reset --hard origin/master
-    #     git add terraform/
-    #     git diff --cached --quiet || git commit -m "AI Terraform Update"
-    #     git push origin HEAD:master
