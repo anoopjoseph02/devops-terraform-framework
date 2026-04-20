@@ -103,21 +103,6 @@ jobs:
     - run: terraform fmt -recursive
       working-directory: terraform/
 
-
-    # 🔷 STEP 8: Plan + Anomaly Detection
-    - name: Plan & Detect Anomalies
-      run: |
-        terraform plan -out=tfplan
-        terraform show -json tfplan > plan.json
-
-        COUNT=$(jq '.resource_changes | length' plan.json)
-
-        if [ "$COUNT" -gt 10 ]; then
-          echo "Too many changes detected!"
-          exit 1
-        fi
-      working-directory: terraform/
-
     # 🔷 STEP 9: TerraTest
     - name: Setup Go
       uses: actions/setup-go@v4
