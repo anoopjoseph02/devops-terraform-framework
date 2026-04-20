@@ -1,4 +1,4 @@
-name: AI Terraform Intelligent Pipeline
+name: AI Terraform Generator
 
 on:
   push:
@@ -11,28 +11,23 @@ permissions:
   pull-requests: write
 
 jobs:
-  ai-terraform:
+  generate:
     runs-on: ubuntu-latest
 
     steps:
-    # 🔷 Checkout
     - uses: actions/checkout@v3
-
-    # 🔷 Setup Terraform
+    
     - uses: hashicorp/setup-terraform@v2
 
-    # 🔷 Install dependencies
-    - name: Install Tools
-      run: sudo apt-get update && sudo apt-get install -y jq bc
+    - name: Install tools
+      run: sudo apt-get install -y jq
 
-    # 🔷 STEP 1: Read Input
-    - name: Read Input JSON
+    - name: Read JSON Input
       run: |
         INPUT=$(cat input/infra.json)
         echo "INPUT<<EOF" >> $GITHUB_ENV
         echo "$INPUT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
-
 
     - name: Build Prompt
       run: |
@@ -73,96 +68,32 @@ jobs:
         awk '/---terraform.tfvars---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/terraform.tfvars
         sed -i '/depends_on/d' terraform/main.tf
 
-    # # 🔷 STEP 6: AI Optimization
-    # - name: AI Optimization
-    #   run: |
-    #     TF=$(cat terraform/main.tf)
-
-    #     PROMPT=$(printf "Optimize this Terraform for cost and performance.
-    #     Keep structure same.
-
-    #     %s" "$TF")
-
-    #     jq -n --arg prompt "$PROMPT" '{
-    #       model: "gpt-4o-mini",
-    #       messages: [
-    #         {role: "system", content: "Return only Terraform"},
-    #         {role: "user", content: $prompt}
-    #       ]
-    #     }' > payload.json
-
-    #     curl -s https://api.openai.com/v1/chat/completions \
-    #       -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-    #       -H "Content-Type: application/json" \
-    #       -d @payload.json > opt.json
-
-    #     jq -r '.choices[0].message.content' opt.json > terraform/main.tf
-    #     sed -i 's/```hcl//g; s/```//g; s/^###.*//g' terraform/main.tf
-
-    # 🔷 STEP 7: Format & Validate
-    - run: terraform fmt -recursive
+    - name: Format Terraform
+      run: terraform fmt -recursive
       working-directory: terraform/
 
-    # 🔷 STEP 9: TerraTest
-    - name: Setup Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: '1.21'
-
-    - name: Run TerraTest
-      run: |
-        cd tests
-        go mod init terratest || true
-        go get github.com/gruntwork-io/terratest/modules/terraform
-        go test -v -timeout 30m
-
-    # 🔷 STEP 11: Monitoring
-    - name: Collect Metrics
-      run: |
-        CPU=$((RANDOM % 100))
-        echo "CPU=$CPU" > metrics.txt
-
-    # 🔷 STEP 12: Predictive Scaling (AI)
-    - name: AI Predictive Scaling
-      run: |
-        CPU=$(cut -d'=' -f2 metrics.txt)
-
-        PROMPT=$(printf "CPU is %s%%. Suggest scaling decision." "$CPU")
-
-        jq -n --arg prompt "$PROMPT" '{
-          model: "gpt-4o-mini",
-          messages: [
-            {role: "system", content: "Return only action"},
-            {role: "user", content: $prompt}
-          ]
-        }' > payload.json
-
-        curl -s https://api.openai.com/v1/chat/completions \
-          -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-          -H "Content-Type: application/json" \
-          -d @payload.json > pred.json
-
-        ACTION=$(jq -r '.choices[0].message.content' pred.json)
-
-        echo "ACTION=$ACTION"
-
-    # 🔷 STEP 13: Auto Remediation
-    - name: Auto Remediation
-      run: |
-        if [[ "$ACTION" == *"scale up"* ]]; then
-          sed -i 's/node_count = 2/node_count = 4/g' terraform/main.tf || true
-        fi
-
-    # 🔷 STEP 14: Create PR
-    - name: Commit & PR
+    - name: Create Branch & PR
+      env:
+        TOKEN: ${{ secrets.TOKEN }}
+        REPO: ${{ github.repository }}
       run: |
         git config user.name "github-actions"
         git config user.email "actions@github.com"
 
-        BRANCH="ai-terraform-update"
+        BRANCH="ai-terraform-pr"
         git checkout -b $BRANCH
 
         git add terraform/
-        git commit -m "AI optimized & self-healed infrastructure"
-
+        git commit -m "AI Generated Terraform"
         git push origin HEAD:$BRANCH --force
+    #     curl -X POST https://api.github.com/repos/$REPO/pulls -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github.v3+json" -d "{\"title\":\"AI Terraform\",\"head\":\"$BRANCH\",\"base\":\"master\",\"body\":\"Auto-generated Terraform code\"}"
+        
+    # - name: Resolve conflicts (keep generated Terraform)
+    #   run: |
+    #     git config user.name "github-actions"
+    #     git config user.email "actions@github.com"
+    #     git fetch origin master
+    #     git reset --hard origin/master
+    #     git add terraform/
+    #     git diff --cached --quiet || git commit -m "AI Terraform Update"
+    #     git push origin HEAD:master
