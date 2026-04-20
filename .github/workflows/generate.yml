@@ -33,33 +33,6 @@ jobs:
         echo "$INPUT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
-    # 🔷 STEP 2: AI Recommendation Engine
-    - name: AI Recommendation
-      run: |
-        PROMPT=$(printf "Enhance this infrastructure JSON with best practices:
-        - autoscaling
-        - cost optimization
-        - performance tuning
-        Return ONLY JSON.
-
-        INPUT: %s" "$INPUT")
-
-        jq -n --arg prompt "$PROMPT" '{
-          model: "gpt-4o-mini",
-          messages: [
-            {role: "system", content: "Return ONLY JSON"},
-            {role: "user", content: $prompt}
-          ]
-        }' > payload.json
-
-        curl -s https://api.openai.com/v1/chat/completions \
-          -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-          -H "Content-Type: application/json" \
-          -d @payload.json > response.json
-
-        UPDATED=$(jq -r '.choices[0].message.content' response.json)
-
-        echo "$UPDATED" > enhanced.json
 
     - name: Build Prompt
       run: |
@@ -69,33 +42,36 @@ jobs:
         echo "$PROMPT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
-    # 🔷 STEP 4: AI Terraform Generation
-    - name: Generate Terraform
+    - name: Call OpenAI API
       run: |
-        jq -n --arg prompt "$PROMPT" '{
-          model: "gpt-4o",
-          messages: [
-            {role: "system", content: "Terraform expert"},
-            {role: "user", content: $prompt}
-          ]
-        }' > payload.json
+        jq -n \
+          --arg prompt "$PROMPT" \
+          '{
+            model: "gpt-4o",
+            messages: [
+              {role: "system", content: "You are a Terraform expert."},
+              {role: "user", content: $prompt}
+            ]
+          }' > payload.json
+        JSON=$(jq -c . payload.json)
 
         curl -s https://api.openai.com/v1/chat/completions \
           -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
           -H "Content-Type: application/json" \
-          -d @payload.json > response.json
+          -d "$JSON" > response.json
 
-        jq -r '.choices[0].message.content' response.json > terraform_output.txt
-        sed -i 's/```//g' terraform_output.txt
+        cat response.json | jq -r '.choices[0].message.content' > terraform_output.txt
+        cat terraform_output.txt
+        sed -i 's/```hcl//g; s/```//g; s/^###.*//g' terraform_output.txt
 
-    # 🔷 STEP 5: Split Terraform Files
-    - name: Split Files
+    - name: Split Terraform Files
       run: |
-        mkdir -p terraform
+        mkdir -p terraform/modules
         awk '/---main.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/main.tf
         awk '/---variables.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/variables.tf
         awk '/---outputs.tf---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/outputs.tf
         awk '/---terraform.tfvars---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/terraform.tfvars
+        sed -i '/depends_on/d' terraform/main.tf
 
     # 🔷 STEP 6: AI Optimization
     - name: AI Optimization
