@@ -97,6 +97,7 @@ jobs:
           -d @payload.json > opt.json
 
         jq -r '.choices[0].message.content' opt.json > terraform/main.tf
+        sed -i 's/```hcl//g; s/```//g; s/^###.*//g' terraform/main.tf
 
     # 🔷 STEP 7: Format & Validate
     - run: terraform fmt -recursive
