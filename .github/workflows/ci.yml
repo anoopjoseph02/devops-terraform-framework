@@ -70,3 +70,12 @@ jobs:
       run: |
         terraform plan -no-color
       working-directory: terraform/
+
+
+    - name: Run TerraTest
+      run: |
+        if [ -d "tests" ]; then
+        cd tests && go test -v
+        else
+        echo "Skipping TerraTest (no tests folder)"
+        fi
