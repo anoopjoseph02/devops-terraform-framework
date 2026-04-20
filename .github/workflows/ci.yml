@@ -75,7 +75,17 @@ jobs:
     - name: Run TerraTest
       run: |
         if [ -d "tests" ]; then
-        cd tests && go test -v
+        cd tests
+
+        # Initialize module if missing
+        [ -f go.mod ] || go mod init terratest
+
+        # FIX: download + verify deps
+        go mod tidy
+        go mod download
+
+        # Run tests
+        go test -v -timeout 30m
         else
         echo "Skipping TerraTest (no tests folder)"
         fi
