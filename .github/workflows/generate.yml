@@ -73,31 +73,31 @@ jobs:
         awk '/---terraform.tfvars---/{flag=1;next}/---/{flag=0}flag' terraform_output.txt > terraform/terraform.tfvars
         sed -i '/depends_on/d' terraform/main.tf
 
-    # 🔷 STEP 6: AI Optimization
-    - name: AI Optimization
-      run: |
-        TF=$(cat terraform/main.tf)
+    # # 🔷 STEP 6: AI Optimization
+    # - name: AI Optimization
+    #   run: |
+    #     TF=$(cat terraform/main.tf)
 
-        PROMPT=$(printf "Optimize this Terraform for cost and performance.
-        Keep structure same.
+    #     PROMPT=$(printf "Optimize this Terraform for cost and performance.
+    #     Keep structure same.
 
-        %s" "$TF")
+    #     %s" "$TF")
 
-        jq -n --arg prompt "$PROMPT" '{
-          model: "gpt-4o-mini",
-          messages: [
-            {role: "system", content: "Return only Terraform"},
-            {role: "user", content: $prompt}
-          ]
-        }' > payload.json
+    #     jq -n --arg prompt "$PROMPT" '{
+    #       model: "gpt-4o-mini",
+    #       messages: [
+    #         {role: "system", content: "Return only Terraform"},
+    #         {role: "user", content: $prompt}
+    #       ]
+    #     }' > payload.json
 
-        curl -s https://api.openai.com/v1/chat/completions \
-          -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
-          -H "Content-Type: application/json" \
-          -d @payload.json > opt.json
+    #     curl -s https://api.openai.com/v1/chat/completions \
+    #       -H "Authorization: Bearer ${{ secrets.OPENAI_API_KEY }}" \
+    #       -H "Content-Type: application/json" \
+    #       -d @payload.json > opt.json
 
-        jq -r '.choices[0].message.content' opt.json > terraform/main.tf
-        sed -i 's/```hcl//g; s/```//g; s/^###.*//g' terraform/main.tf
+    #     jq -r '.choices[0].message.content' opt.json > terraform/main.tf
+    #     sed -i 's/```hcl//g; s/```//g; s/^###.*//g' terraform/main.tf
 
     # 🔷 STEP 7: Format & Validate
     - run: terraform fmt -recursive
