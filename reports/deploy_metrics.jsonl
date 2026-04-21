@@ -1,1 +1,2 @@
 
+{  "run_id":             "24743533590",  "timestamp":          "2026-04-21T20:00:45Z",  "duration_seconds":   0,  "resources_added":    0,  "resources_changed":  0,  "resources_destroyed": 0,  "plan_size_bytes":    0,  "status":             "success",  "branch":             "aks_deployment"}
