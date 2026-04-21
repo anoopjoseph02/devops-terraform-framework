@@ -79,7 +79,7 @@ jobs:
  
       # ── Security scan — Checkov ──────────────────────────────────────────
       - name: Security scan — Checkov
-        continue-on-error: true   <- remove this gate once baseline is clean
+        continue-on-error: true
         run: |
           pip install checkov --break-system-packages --quiet
  
