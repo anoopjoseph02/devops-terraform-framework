@@ -21,7 +21,7 @@ jobs:
  
     steps:
       # ── Checkout the generated branch ────────────────────────────────────
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           ref: ai-terraform-pr
           # Fetch full history so git push back works cleanly
