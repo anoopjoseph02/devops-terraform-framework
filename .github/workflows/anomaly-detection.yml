@@ -35,7 +35,7 @@ jobs:
           echo "exitcode=$?" >> $GITHUB_OUTPUT
 
       - name: Upload anomaly report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: anomaly-report-${{ github.run_id }}
           path: reports/anomaly_report.md
