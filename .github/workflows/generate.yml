@@ -28,6 +28,7 @@ jobs:
         echo "INPUT<<EOF" >> $GITHUB_ENV
         echo "$INPUT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
+        cat input/aks_config.json
 
     - name: Validate input schema
       run: |
