@@ -1,0 +1,66 @@
+name: Metrics Collector
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'   # Weekly on Monday at 08:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  collect-and-evaluate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install scikit-learn numpy
+
+      - name: Run Checkov security scan
+        continue-on-error: true
+        run: |
+          pip install checkov
+          mkdir -p reports
+          checkov -d terraform/ \
+            --output json \
+            --output-file-path reports/ 2>/dev/null || true
+          # Summarise to reports/checkov_summary.json
+          python3 - <<'EOF'
+          import json, pathlib, glob
+          files = glob.glob("reports/results_*.json")
+          if files:
+              data = json.loads(pathlib.Path(files[0]).read_text())
+              summary = {
+                  "passed_checks": data.get("summary", {}).get("passed", 0),
+                  "failed_checks":  data.get("summary", {}).get("failed", 0),
+                  "num_runs": 1,
+              }
+              pathlib.Path("reports/checkov_summary.json").write_text(json.dumps(summary, indent=2))
+              print(f"Checkov: {summary}")
+          EOF
+
+      - name: Generate evaluation report
+        run: python scripts/evaluate_framework.py
+
+      - name: Commit reports
+        run: |
+          git config user.name  "github-actions"
+          git config user.email "actions@github.com"
+          git add reports/
+          git commit -m "ci: weekly evaluation report [skip ci]" || echo "Nothing to commit"
+          git push || echo "Push failed (non-blocking)"
+
+      - name: Upload evaluation report
+        uses: actions/upload-artifact@v3
+        with:
+          name: evaluation-report-${{ github.run_id }}
+          path: reports/evaluation_report.md

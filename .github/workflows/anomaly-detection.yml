@@ -1,0 +1,53 @@
+name: Anomaly Detection
+
+on:
+  workflow_run:
+    workflows: ["Terraform CD"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  detect-anomaly:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install scikit-learn numpy
+
+      - name: Run anomaly detector
+        id: anomaly
+        run: |
+          set +e
+          python scripts/anomaly_detector.py
+          echo "exitcode=$?" >> $GITHUB_OUTPUT
+
+      - name: Upload anomaly report
+        uses: actions/upload-artifact@v3
+        with:
+          name: anomaly-report-${{ github.run_id }}
+          path: reports/anomaly_report.md
+          if-no-files-found: ignore
+
+      - name: Create GitHub issue on anomaly
+        if: steps.anomaly.outputs.exitcode == '1'
+        run: |
+          BODY=$(cat reports/anomaly_report.md 2>/dev/null || echo "Anomaly detected — see run ${{ github.run_id }}")
+          gh issue create \
+            --title "Deployment anomaly detected — run ${{ github.run_id }}" \
+            --body "$BODY" \
+            --label "anomaly,infrastructure"
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN }}

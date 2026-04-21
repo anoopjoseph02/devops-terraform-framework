@@ -1,0 +1,65 @@
+name: Drift Detection
+
+on:
+  schedule:
+    - cron: '0 6 * * *'   # Daily at 06:00 UTC
+  workflow_dispatch:        # Allow manual trigger
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  detect-drift:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ai-terraform-pr
+
+      - uses: azure/login@v3
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - uses: hashicorp/setup-terraform@v2
+
+      - name: Terraform init
+        run: terraform init
+        working-directory: terraform/
+
+      - name: Terraform plan (drift check)
+        id: plan
+        run: |
+          set +e
+          terraform plan -detailed-exitcode -no-color 2>&1 | tee /tmp/plan_output.txt
+          EXITCODE=${PIPESTATUS[0]}
+          echo "exitcode=$EXITCODE" >> $GITHUB_OUTPUT
+          echo "PLAN_OUTPUT<<EOF" >> $GITHUB_ENV
+          head -100 /tmp/plan_output.txt >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+        working-directory: terraform/
+
+      - name: No drift detected
+        if: steps.plan.outputs.exitcode == '0'
+        run: echo "Infrastructure matches state. No drift detected."
+
+      - name: Drift detected — create issue
+        if: steps.plan.outputs.exitcode == '2'
+        run: |
+          gh issue create \
+            --title "Infrastructure drift detected — $(date +%Y-%m-%d)" \
+            --body "## Drift detected by scheduled plan\n\n\`\`\`\n${{ env.PLAN_OUTPUT }}\n\`\`\`\n\nReview and re-apply if safe." \
+            --label "drift,infrastructure"
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN }}
+
+      - name: Plan error — create issue
+        if: steps.plan.outputs.exitcode == '1'
+        run: |
+          gh issue create \
+            --title "Terraform plan error in drift check — $(date +%Y-%m-%d)" \
+            --body "## Plan failed\n\n\`\`\`\n${{ env.PLAN_OUTPUT }}\n\`\`\`" \
+            --label "infrastructure,error"
+        env:
+          GH_TOKEN: ${{ secrets.TOKEN }}

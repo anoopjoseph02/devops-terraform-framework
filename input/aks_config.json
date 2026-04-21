@@ -1,0 +1,53 @@
+{
+  "resource_group": "aj-rg-prod",
+  "location": "eastus",
+  "environment": "prod",
+  "tags": {
+    "project": "ai-devops-framework",
+    "owner": "anoop-joseph",
+    "cost_centre": "engineering"
+  },
+  "resources": [
+    {
+      "type": "virtual_network",
+      "name": "aj-vnet",
+      "address_space": ["10.0.0.0/8"]
+    },
+    {
+      "type": "subnet",
+      "name": "aj-aks-subnet",
+      "address_prefixes": ["10.1.0.0/16"]
+    },
+    {
+      "type": "storage_account",
+      "name": "ajstorageacct",
+      "replication_type": "LRS",
+      "account_tier": "Standard",
+      "account_kind": "StorageV2",
+      "min_tls_version": "TLS1_2",
+      "allow_blob_public_access": false
+    },
+    {
+      "type": "aks_cluster",
+      "name": "aj-aks",
+      "node_count": 2,
+      "min_node_count": 2,
+      "max_node_count": 5,
+      "vm_size": "Standard_D4s_v3",
+      "enable_auto_scaling": false,
+      "network_plugin": "kubenet"
+    },
+    {
+      "type": "key_vault",
+      "name": "aj-keyvault",
+      "sku_name": "standard",
+      "soft_delete_retention_days": 7,
+      "purge_protection_enabled": false
+    },
+    {
+      "type": "container_registry",
+      "name": "ajacr",
+      "sku": "Basic"
+    }
+  ]
+}
