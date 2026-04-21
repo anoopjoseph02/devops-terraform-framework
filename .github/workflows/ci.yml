@@ -148,6 +148,7 @@ jobs:
               print("COST GATE: exceeds $500/month threshold")
               sys.exit(1)
           PYEOF
+          cat reports/infracost.json
         env:
           INFRACOST_API_KEY: ${{ vars.INFRACOST_API_KEY }}
  
