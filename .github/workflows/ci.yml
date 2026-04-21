@@ -149,7 +149,7 @@ jobs:
               sys.exit(1)
           PYEOF
         env:
-          INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+          INFRACOST_API_KEY: ${{ vars.INFRACOST_API_KEY }}
  
       # ── Terraform Plan ────────────────────────────────────────────────────
       - name: Terraform Plan
