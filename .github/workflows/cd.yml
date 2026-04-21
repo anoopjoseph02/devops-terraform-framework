@@ -26,3 +26,17 @@ jobs:
     - name: Apply (with retry)
       run: |
         terraform apply -auto-approve || bash scripts/self_heal.sh
+
+    - name: Capture deployment metrics
+      if: always()
+      run: bash scripts/capture_metrics.sh
+      env:
+        GH_TOKEN: ${{ secrets.TOKEN }}
+        DEPLOY_DURATION_SECONDS: ${{ steps.apply.outputs.duration || 0 }}
+        JOB_STATUS: ${{ job.status }}
+
+    - name: Run anomaly detection
+      if: success()
+      run: |
+        pip install scikit-learn numpy --break-system-packages
+        python scripts/anomaly_detector.py

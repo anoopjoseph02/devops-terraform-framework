@@ -52,19 +52,45 @@ jobs:
       run: terraform validate
       working-directory: terraform/
 
-    - name: Security Scan (Checkov)
-      continue-on-error: true
+    - name: Security scan — Checkov (hard gate)
       run: |
-        pip install checkov
-        checkov -d terraform/
+        pip install checkov --break-system-packages
+        checkov -d terraform/ \
+          --soft-fail-on MEDIUM \
+          --hard-fail-on HIGH,CRITICAL \
+          --output cli \
+          --output json \
+          --output-file-path reports/
+        # Summarise for evaluation report
+        python3 - <<'EOF'
+        import json, pathlib, glob
+        files = glob.glob("reports/results_*.json")
+        if files:
+            data = json.loads(pathlib.Path(files[0]).read_text())
+            summary = {
+                "passed_checks": data.get("summary", {}).get("passed", 0),
+                "failed_checks":  data.get("summary", {}).get("failed", 0),
+                "num_runs": 1,
+            }
+            pathlib.Path("reports/checkov_summary.json").write_text(
+                json.dumps(summary, indent=2))
+            print(summary)
+        EOF
 
-    - name: Cost Estimation (Infracost)
+    - name: Cost estimation — Infracost (gate at $500/month)
       continue-on-error: true
-      env:
-        INFRACOST_API_KEY: ${{ vars.INFRACOST_API_KEY }}
       run: |
         curl -sL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
-        infracost breakdown --path terraform/
+        infracost breakdown --path terraform/ --format json > reports/infracost.json
+        python3 - <<'EOF'
+        import json, sys
+        data = json.loads(open("reports/infracost.json").read())
+        cost = float(data.get("totalMonthlyCost", 0))
+        print(f"Estimated monthly cost: ${cost:.2f}")
+        if cost > 500:
+            print("COST GATE: exceeds $500/month threshold")
+            sys.exit(1)
+        EOF
   
     - name: Terraform Plan (with retry)
       run: |

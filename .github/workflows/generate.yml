@@ -29,6 +29,40 @@ jobs:
         echo "$INPUT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
 
+    - name: Validate input schema
+      run: |
+        pip install jsonschema --break-system-packages
+        python3 - <<'EOF'
+        import json, jsonschema, pathlib, sys
+        schema = json.loads(pathlib.Path('input/schema.json').read_text())
+        data   = json.loads(pathlib.Path('input/infra.json').read_text())
+        try:
+            jsonschema.validate(data, schema)
+            print('Input schema: VALID')
+        except jsonschema.ValidationError as e:
+            print(f'Input schema: INVALID — {e.message}')
+            sys.exit(1)
+        EOF
+
+    - name: Predictive scaling adjustment
+      run: |
+        pip install openai numpy --break-system-packages
+        python scripts/predictive_scaler.py input/infra.json
+      env:
+        ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+    - name: AI resource recommendations
+      run: python scripts/ai_recommender.py input/infra.json
+      env:
+        OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    - name: Read optimised input
+      run: |
+        INPUT=$(cat input/infra_optimised.json)
+        echo "INPUT<<EOF" >> $GITHUB_ENV
+        echo "$INPUT" >> $GITHUB_ENV
+        echo "EOF" >> $GITHUB_ENV
+
     - name: Build Prompt
       run: |
         #PROMPT=$(printf "You are a senior DevOps engineer and Terraform expert specializing in Microsoft Azure. Your task is to convert the provided infrastructure definition into production-ready Terraform code. REQUIREMENTS: - Use ONLY Azure (azurerm provider) - Dynamically detect resources from input (DO NOT assume fixed resources) - Generate only the resources present in the input JSON - Use correct azurerm_* resource types - Use variables (no hardcoding) - Follow Terraform best practices - Ensure proper dependencies between resources STRUCTURE: - Use modular design where applicable - Generate: main.tf variables.tf outputs.tf terraform.tfvars RULES: - DO NOT include markdown or formatting - DO NOT include explanations - ONLY return plain Terraform code - Use EXACT separators: ---main.tf--- ---variables.tf--- ---outputs.tf--- ---terraform.tfvars--- INPUT JSON: %s" "$INPUT")
