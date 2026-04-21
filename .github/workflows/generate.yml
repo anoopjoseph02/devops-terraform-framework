@@ -24,7 +24,7 @@ jobs:
 
     - name: Read JSON Input
       run: |
-        INPUT=$(cat input/infra.json)
+        INPUT=$(cat input/aks_config.json)
         echo "INPUT<<EOF" >> $GITHUB_ENV
         echo "$INPUT" >> $GITHUB_ENV
         echo "EOF" >> $GITHUB_ENV
@@ -35,7 +35,7 @@ jobs:
         python3 - <<'EOF'
         import json, jsonschema, pathlib, sys
         schema = json.loads(pathlib.Path('input/schema.json').read_text())
-        data   = json.loads(pathlib.Path('input/infra.json').read_text())
+        data   = json.loads(pathlib.Path('input/aks_config.json').read_text())
         try:
             jsonschema.validate(data, schema)
             print('Input schema: VALID')
@@ -47,12 +47,12 @@ jobs:
     - name: Predictive scaling adjustment
       run: |
         pip install openai numpy --break-system-packages
-        python scripts/predictive_scaler.py input/infra.json
+        python scripts/predictive_scaler.py input/aks_config.json
       env:
         ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
     - name: AI resource recommendations
-      run: python scripts/ai_recommender.py input/infra.json
+      run: python scripts/ai_recommender.py input/aks_config.json
       env:
         OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
