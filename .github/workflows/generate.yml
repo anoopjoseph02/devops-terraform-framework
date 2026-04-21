@@ -58,6 +58,7 @@ jobs:
 
     - name: Read optimised input
       run: |
+        cat input/infra_optimised.json
         INPUT=$(cat input/infra_optimised.json)
         echo "INPUT<<EOF" >> $GITHUB_ENV
         echo "$INPUT" >> $GITHUB_ENV

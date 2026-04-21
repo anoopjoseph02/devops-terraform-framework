@@ -24,9 +24,7 @@ import openai
 
 client = openai.OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 
-# ---------------------------------------------------------------------------
-# Rule engine — deterministic, auditable, zero API cost
-# ---------------------------------------------------------------------------
+
 RULES = {
     "storage": {
         "replication_by_env": {
