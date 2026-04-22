@@ -130,10 +130,25 @@ jobs:
           # Install via official script (pinned to stable)
           curl -fsSL https://raw.githubusercontent.com/infracost/infracost/master/scripts/install.sh | sh
  
+        
           infracost breakdown \
-            --path terraform/ \
-            --format json \
-            --out-file reports/infracost.json
+          --path terraform/ \
+          --format json \
+          --out-file reports/infracost.json
+
+        
+          infracost breakdown \
+          --path terraform/ \
+          --format table \
+          --out-file reports/infracost_table.txt
+
+          cat reports/infracost_table.txt
+
+        
+          echo "## Infracost Estimate" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat reports/infracost_table.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
  
           python3 - <<'PYEOF'
           import json, sys, pathlib
