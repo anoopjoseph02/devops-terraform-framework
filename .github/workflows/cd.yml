@@ -27,6 +27,7 @@ jobs:
 
     - name: Apply (with retry)
       run: |
+        ls -la terraform/
         terraform apply -auto-approve || bash scripts/self_heal.sh
 
     - name: Capture deployment metrics
