@@ -107,6 +107,17 @@ jobs:
         cat response.json | jq -r '.choices[0].message.content' > terraform_output.txt
         cat terraform_output.txt
         sed -i 's/```hcl//g; s/```//g; s/^###.*//g' terraform_output.txt
+        
+    - name: Clean AI output
+      run: |
+        # Strip markdown fences and HCL language tags from raw output
+        sed -i 's/```hcl//g' terraform_output.txt
+        sed -i 's/```terraform//g' terraform_output.txt
+        sed -i 's/```hcl$//g' terraform_output.txt
+        sed -i '/^```/d' terraform_output.txt
+        sed -i 's/^###.*//g' terraform_output.txt
+        sed -i '/^~~~/d' terraform_output.txt
+        cat terraform_output.txt
 
     - name: Split Terraform Files
       run: |
