@@ -20,7 +20,7 @@
     },
     {
       "type": "storage_account",
-      "name": "ajstorageacct",
+      "name": "ajstorageacct445",
       "replication_type": "LRS",
       "account_tier": "Standard",
       "account_kind": "StorageV2",
