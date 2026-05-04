@@ -27,7 +27,7 @@ jobs:
     - uses: hashicorp/setup-terraform@v2
 
     - name: Terraform Init
-      run: terraform init
+      run: terraform init -backend-config="resource_group_name=${{ vars.BACKEND_RESOURCE_GROUP }}" -backend-config="storage_account_name=${{ vars.BACKEND_STORAGE_ACCOUNT }}" -backend-config="container_name=${{ vars.BACKEND_CONTAINER }}" -backend-config="key=prod/terraform.tfstate"
       working-directory: terraform/
 
     - name: Apply (with retry)
